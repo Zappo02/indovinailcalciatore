@@ -1,0 +1,1394 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Indovina il Giocatore | Universo Sportivo</title>
+<meta name="description" content="Indovina il calciatore dalla sua carriera: club, anni, presenze e gol. Una sfida nuova ogni giorno, più l'archivio e la modalità infinito.">
+<meta name="theme-color" content="#F6EDE6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070910" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Indovina il Giocatore">
+<meta property="og:description" content="Indovina il calciatore dalla sua carriera. Una sfida nuova ogni giorno.">
+<meta property="og:site_name" content="Universo Sportivo">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Newsreader:opsz,wght@6..72,400..600&family=Roboto+Mono:wght@400;700&display=swap">
+<style>
+  :root{
+    color-scheme:light;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html,body,#root{height:100%}
+  body{margin:0;background:#F6EDE6;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){color-scheme:dark}
+    body{background:#070910}
+  }
+  :root[data-theme="dark"] body{background:#070910}
+  :root[data-theme="light"] body{background:#F6EDE6}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React: due file da CDN, nient'altro da installare -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+
+<script>
+(() => {
+  const { useState, useEffect, useMemo, useRef, useCallback } = React;
+  const ARCHIVIO = [
+    // { giocatore: "Francesco Totti", squadra: "Roma", stagione: "2004-05", presenze: 29, gol: 12 },
+  ];
+  const g = (nome, nazione, ruolo, altezza, giovanili, tappe) => ({
+    nome,
+    nazione: nazione || null,
+    ruolo: ruolo || null,
+    altezza: altezza || null,
+    giovanili: giovanili || [],
+    tappe: tappe.map(([squadra, dal, al, presenze, gol, prestito]) => ({
+      squadra,
+      dal,
+      al,
+      presenze: presenze || 0,
+      gol: gol || 0,
+      prestito: !!prestito
+    }))
+  });
+  const CARRIERE = [
+    g("Adam Maru\u0161i\u0107", "Montenegro", "Difensore, centrocampista", 185, ["Partizan", "Teleoptik", "Vo\u017Edovac"], [
+      ["Vo\u017Edovac", 2010, 2014, 89, 15],
+      ["Kortrijk", 2014, 2016, 71, 10],
+      ["Ostenda", 2016, 2017, 36, 5],
+      ["Lazio", 2017, 2026, 281, 15]
+    ]),
+    g("Alessandro Bastoni", "Italia", "Difensore", 190, ["Cannetese", "Atalanta"], [
+      ["Atalanta", 2016, 2018, 7, 0],
+      ["Parma", 2018, 2019, 24, 1, 1],
+      ["Inter", 2019, 2026, 212, 6]
+    ]),
+    g("Alessio Romagnoli", "Italia", "Difensore", 185, ["Roma"], [
+      ["Roma", 2012, 2014, 13, 1],
+      ["Sampdoria", 2014, 2015, 30, 2, 1],
+      ["Milan", 2015, 2022, 197, 8],
+      ["Lazio", 2022, 2026, 127, 4],
+      ["Al-Sadd", 2026, 2026, 0, 0]
+    ]),
+    g("Anastasios Douvikas", "Grecia", "Attaccante", 184, ["Aristeas Argous", "Asteras Tripol\u012Bs"], [
+      ["Asteras Tripol\u012Bs", 2017, 2020, 40, 2],
+      ["Volo", 2020, 2021, 30, 11],
+      ["Utrecht", 2021, 2023, 72, 39],
+      ["Celta Vigo", 2023, 2025, 52, 10],
+      ["Como", 2025, 2026, 54, 18]
+    ]),
+    g("Andrea Pinamonti", "Italia", "Attaccante", 185, ["Bassa Anaunia", "Chievo", "Inter"], [
+      ["Inter", 2017, 2018, 3, 0],
+      ["Frosinone", 2018, 2019, 27, 5, 1],
+      ["Genoa", 2019, 2020, 32, 5],
+      ["Inter", 2020, 2021, 8, 1],
+      ["Empoli", 2021, 2022, 36, 13, 1],
+      ["Sassuolo", 2022, 2024, 70, 16],
+      ["Genoa", 2024, 2025, 36, 10, 1],
+      ["Sassuolo", 2025, 2026, 36, 9],
+      ["Lazio", 2026, 2026, 4, 0]
+    ]),
+    g("Andr\xE9-Frank Anguissa", "Camerun", "Centrocampista", 184, ["AS Fortuna", "Cotonsport Garoua", "Stade Reims"], [
+      ["Olympique Marsiglia", 2015, 2018, 79, 0],
+      ["Fulham", 2018, 2019, 22, 0],
+      ["Villarreal", 2019, 2020, 36, 2, 1],
+      ["Fulham", 2020, 2021, 39, 0],
+      ["Napoli", 2021, 2026, 152, 13]
+    ]),
+    g("Ange-Yoan Bonny", "Francia", "Attaccante", 189, ["La Rochelle Villeneuve", "P\xE9rigny", "Chambray", "Tours"], [
+      ["Ch\xE2teauroux", 2020, 2021, 5, 1],
+      ["Parma", 2021, 2025, 109, 12],
+      ["Inter", 2025, 2026, 37, 6]
+    ]),
+    g("Antonio Vergara", "Italia", "Centrocampista, attaccante", 182, ["Napoli"], [
+      ["Pro Vercelli", 2022, 2023, 34, 3, 1],
+      ["Reggiana", 2023, 2025, 39, 5, 1],
+      ["Napoli", 2025, 2026, 15, 2]
+    ]),
+    g("Armand Laurient\xE9", "Francia", "Attaccante", 171, ["Roissy-en-France", "Sarcelles", "Red Star", "Rennes"], [
+      ["Rennes 2", 2017, 2018, 16, 7],
+      ["Orl\xE9ans", 2018, 2019, 12, 3, 1],
+      ["Rennes", 2019, 2020, 1, 0],
+      ["Lorient", 2019, 2022, 86, 12],
+      ["Sassuolo", 2022, 2026, 140, 37]
+    ]),
+    g("Arthur Atta", "Francia", "Centrocampista", 189, ["Saint-Jacques", "Rennes", "Metz"], [
+      ["Metz 2", 2021, 2024, 16, 5],
+      ["Metz", 2022, 2024, 39, 2],
+      ["Udinese", 2024, 2026, 59, 5],
+      ["Fiorentina", 2026, 2026, 4, 0]
+    ]),
+    g("Bryan Cristante", "Italia", "Centrocampista", 186, ["Liventina Gorghense", "Milan"], [
+      ["Milan", 2011, 2014, 3, 1],
+      ["Benfica", 2014, 2016, 7, 0],
+      ["Palermo", 2016, 2017, 4, 0, 1],
+      ["Pescara", 2016, 2017, 16, 0, 1],
+      ["Atalanta", 2017, 2018, 48, 12],
+      ["Roma", 2018, 2026, 274, 18]
+    ]),
+    g("Christian Pulisic", "Stati Uniti", "Centrocampista, attaccante", 177, ["Brackley Town", "non conosciuta Michigan Rush", "non conosciuta PA Classics", "Borussia Dortmund"], [
+      ["Borussia Dortmund", 2015, 2019, 90, 13],
+      ["Chelsea", 2019, 2023, 98, 20],
+      ["Milan", 2023, 2026, 102, 32]
+    ]),
+    g("Donyell Malen", "Paesi Bassi", "Attaccante", 176, ["VV Succes", "Hollandia", "Ajax", "Arsenal"], [
+      ["PSV", 2018, 2021, 81, 40],
+      ["Borussia Dortmund", 2021, 2025, 94, 30],
+      ["Aston Villa", 2025, 2026, 35, 7],
+      ["Roma", 2026, 2026, 23, 20]
+    ]),
+    g("Elia Caprile", "Italia", "Portiere", 191, ["Cadore", "Chievo", "Leeds Utd"], [
+      ["Pro Patria", 2021, 2022, 36, -41, 1],
+      ["Bari", 2022, 2023, 37, -33],
+      ["Empoli", 2023, 2024, 23, -27, 1],
+      ["Napoli", 2024, 2025, 4, -1],
+      ["Cagliari", 2025, 2026, 61, -76]
+    ]),
+    g("Federico Bonazzoli", "Italia", "Attaccante", 182, ["Ghedi", "Montichiari", "Inter"], [
+      ["Inter", 2013, 2015, 5, 0],
+      ["Sampdoria", 2015, 2016, 4, 0],
+      ["Virtus Lanciano", 2016, 2017, 14, 1, 1],
+      ["Brescia", 2016, 2017, 25, 2, 1],
+      ["Sampdoria", 2017, 2018, 1, 0],
+      ["SPAL", 2017, 2018, 11, 0, 1],
+      ["Padova", 2018, 2019, 35, 8, 1],
+      ["Sampdoria", 2019, 2020, 21, 6],
+      ["Torino", 2020, 2021, 20, 2, 1],
+      ["Salernitana", 2021, 2023, 56, 12],
+      ["Verona", 2023, 2024, 24, 3, 1],
+      ["Cremonese", 2024, 2026, 61, 16]
+    ]),
+    g("Federico Dimarco", "Italia", "Difensore, centrocampista", 175, ["Calvairate", "Inter"], [
+      ["Inter", 2014, 2016, 1, 0],
+      ["Ascoli", 2016, 2017, 15, 0, 1],
+      ["Empoli", 2016, 2017, 12, 0, 1],
+      ["Sion", 2017, 2018, 9, 0],
+      ["Parma", 2018, 2019, 13, 1, 1],
+      ["Inter", 2019, 2020, 3, 0],
+      ["Verona", 2020, 2021, 48, 5, 1],
+      ["Inter", 2021, 2026, 168, 22]
+    ]),
+    g("Gianluca Scamacca", "Italia", "Attaccante", 195, ["Cisco Roma", "Monterotondo", "Lazio", "Roma"], [
+      ["Jong PSV", 2015, 2017, 3, 0],
+      ["Sassuolo", 2017, 2018, 3, 0],
+      ["Cremonese", 2018, 2019, 14, 1, 1],
+      ["PEC Zwolle", 2018, 2019, 8, 0, 1],
+      ["Sassuolo", 2019, 2020, 0, 0],
+      ["Ascoli", 2019, 2020, 33, 9, 1],
+      ["Genoa", 2020, 2021, 26, 8, 1],
+      ["Sassuolo", 2021, 2022, 36, 16],
+      ["West Ham Utd", 2022, 2023, 16, 3],
+      ["Atalanta", 2023, 2026, 59, 23]
+    ]),
+    g("Gift Orban", "Nigeria", "Attaccante", 178, ["Stab\xE6k"], [
+      ["Stab\xE6k", 2021, 2022, 22, 16],
+      ["Gent", 2023, 2024, 27, 12],
+      ["Olympique Lione", 2024, 2025, 16, 3],
+      ["Hoffenheim", 2025, 2026, 13, 4],
+      ["Verona", 2025, 2026, 28, 7, 1],
+      ["Amed", 2026, 2026, 6, 7, 1]
+    ]),
+    g("Giovanni Simeone", "Argentina", "Attaccante", 180, ["Rayo Majadahonda", "River Plate"], [
+      ["River Plate", 2013, 2015, 27, 2],
+      ["Banfield", 2015, 2016, 34, 12],
+      ["Genoa", 2016, 2017, 35, 12],
+      ["Fiorentina", 2017, 2019, 74, 20],
+      ["Cagliari", 2019, 2021, 71, 18],
+      ["Verona", 2021, 2022, 35, 17],
+      ["Napoli", 2022, 2025, 83, 6],
+      ["Torino", 2025, 2026, 32, 11]
+    ]),
+    g("Jamie Vardy", "Inghilterra", "Attaccante", 179, ["Sheffield Weds", "Stocksbridge PS"], [
+      ["Stocksbridge PS", 2005, 2010, 0, 0],
+      ["Halifax Town", 2010, 2011, 37, 26],
+      ["Fleetwood Town", 2011, 2012, 36, 31],
+      ["Leicester City", 2012, 2025, 440, 183],
+      ["Cremonese", 2025, 2026, 29, 7],
+      ["Burnley", 2026, 2026, 2, 0]
+    ]),
+    g("Jean Butez", "Francia", "Portiere", 188, ["FC Merris", "Lilla"], [
+      ["Lilla 2", 2013, 2017, 81, -98],
+      ["R.E. Mouscron", 2017, 2020, 48, -59],
+      ["Anversa", 2020, 2025, 116, -116],
+      ["Como", 2025, 2026, 60, -51]
+    ]),
+    g("Jonathan Rowe", "Inghilterra", "Attaccante", 178, ["AFC Wembley", "Norwich City"], [
+      ["Norwich City", 2021, 2024, 48, 12],
+      ["Olympique Marsiglia", 2024, 2025, 29, 3],
+      ["Bologna", 2025, 2026, 29, 3],
+      ["Atalanta", 2026, 2026, 2, 0, 1]
+    ]),
+    g("Jo\xE3o Pedro", "Spagna", "Attaccante, centrocampista", 167, ["San Isidro", "Barcellona"], [
+      ["San Isidro", 2003, 2004, 4, 1],
+      ["Barcellona C", 2005, 2007, 71, 11],
+      ["Barcellona B", 2007, 2009, 51, 16],
+      ["Barcellona", 2008, 2015, 204, 58],
+      ["Chelsea", 2015, 2020, 137, 29],
+      ["Roma", 2020, 2021, 27, 5],
+      ["Lazio", 2021, 2026, 160, 29]
+    ]),
+    g("J\xE9r\xE9mie Boga", "Francia", "Attaccante", 172, ["non conosciuta ASPTT Marseille", "Chelsea"], [
+      ["Rennes", 2015, 2016, 27, 2, 1],
+      ["Granada", 2016, 2017, 26, 2, 1],
+      ["Chelsea", 2017, 2018, 1, 0],
+      ["Birmingham City", 2017, 2018, 31, 2, 1],
+      ["Sassuolo", 2018, 2022, 98, 18],
+      ["Atalanta", 2022, 2023, 38, 2],
+      ["Nizza", 2023, 2026, 63, 9],
+      ["Juventus", 2026, 2026, 18, 4]
+    ]),
+    g("Keinan Davis", "Inghilterra", "Attaccante", 189, ["Stevenage", "Biggleswade Town", "Aston Villa"], [
+      ["Aston Villa", 2016, 2022, 73, 3],
+      ["Nottingham Forest", 2022, 2023, 15, 5, 1],
+      ["Watford", 2022, 2023, 34, 7, 1],
+      ["Udinese", 2023, 2026, 64, 13]
+    ]),
+    g("Kenan Y\u0131ld\u0131z", "Turchia", "Attaccante", 185, ["SV Sallern", "Jahn Ratisbona", "Bayern Monaco", "Juventus"], [
+      ["Juventus Next Gen", 2022, 2023, 14, 2],
+      ["Juventus", 2023, 2026, 99, 19]
+    ]),
+    g("Lameck Banda", "Zambia", "Attaccante", 164, ["Nkwazi"], [
+      ["ZESCO Utd", 2018, 2019, 5, 0],
+      ["Arsenal Tula", 2019, 2020, 11, 0],
+      ["Maccabi Natanya", 2020, 2021, 18, 1, 1],
+      ["Maccabi Petah Tiqwa", 2021, 2022, 26, 7],
+      ["Lecce", 2022, 2026, 104, 9],
+      ["Asswehly", 2026, 2026, 0, 0]
+    ]),
+    g("Lorenzo Colombo", "Italia", "Attaccante", 183, ["Milan"], [
+      ["Milan", 2019, 2021, 5, 0],
+      ["Cremonese", 2021, 2022, 13, 1, 1],
+      ["SPAL", 2021, 2022, 34, 6, 1],
+      ["Lecce", 2022, 2023, 33, 5, 1],
+      ["Monza", 2023, 2024, 25, 4, 1],
+      ["Empoli", 2024, 2025, 37, 6, 1],
+      ["Genoa", 2025, 2026, 43, 7]
+    ]),
+    g("Luka Modri\u0107", "Croazia", "Centrocampista", 172, ["Zara", "Dinamo Zagabria"], [
+      ["Zrinjski Mostar", 2003, 2004, 25, 8, 1],
+      ["Inter Zapre\u0161i\u0107", 2004, 2005, 18, 4, 1],
+      ["Dinamo Zagabria", 2005, 2008, 94, 27],
+      ["Tottenham", 2008, 2012, 127, 13],
+      ["Real Madrid", 2012, 2025, 394, 30],
+      ["Milan", 2025, 2026, 39, 2]
+    ]),
+    g("Mandela Keita", "Belgio", "Centrocampista", 180, ["OH Lovanio", "Genk", "OH Lovanio"], [
+      ["OH Lovanio", 2021, 2023, 33, 0],
+      ["Anversa", 2023, 2024, 11, 0, 1],
+      ["OH Lovanio", 2023, 2024, 1, 0],
+      ["Anversa", 2023, 2024, 25, 0],
+      ["Parma", 2024, 2026, 71, 1]
+    ]),
+    g("Marco Carnesecchi", "Italia", "Portiere", 191, ["Sant'Ermete", "Cesena", "Atalanta"], [
+      ["Trapani", 2019, 2020, 33, -52, 1],
+      ["Atalanta", 2020, 2021, 0, 0],
+      ["Cremonese", 2021, 2023, 83, -103, 1],
+      ["Atalanta", 2023, 2026, 103, -106]
+    ]),
+    g("Marcus Thuram", "Francia", "Attaccante", 192, ["Olympique de Neuilly", "Boulogne-Billancourt", "Sochaux"], [
+      ["Sochaux 2", 2014, 2017, 38, 6],
+      ["Sochaux", 2016, 2017, 37, 1],
+      ["Guingamp", 2017, 2019, 64, 12],
+      ["Borussia M'gladbach", 2019, 2023, 111, 34],
+      ["Inter", 2023, 2026, 100, 42]
+    ]),
+    g("Martin Baturina", "Croazia", "Centrocampista", 172, ["Hajduk Spalato", "RNK Spalato", "Dinamo Zagabria"], [
+      ["Dinamo Zagabria", 2020, 2025, 114, 17],
+      ["Dinamo Zagabria II", 2021, 2022, 15, 1],
+      ["Como", 2025, 2026, 34, 8]
+    ]),
+    g("Mateo Pellegrino", "Argentina", "Attaccante", 192, ["Valencia", "Inter", "V\xE9lez Sarsfield"], [
+      ["V\xE9lez Sarsfield", 2021, 2022, 8, 0],
+      ["Estudiantes (LP)", 2022, 2023, 14, 0, 1],
+      ["Platense", 2023, 2024, 38, 10, 1],
+      ["V\xE9lez Sarsfield", 2024, 2025, 1, 0],
+      ["Parma", 2024, 2026, 50, 12],
+      ["Fiorentina", 2026, 2026, 4, 3]
+    ]),
+    g("Matteo Politano", "Italia", "Attaccante", 170, ["Selva Candida", "Roma"], [
+      ["Perugia", 2012, 2013, 28, 8, 1],
+      ["Pescara", 2013, 2015, 72, 11],
+      ["Sassuolo", 2015, 2018, 96, 20],
+      ["Inter", 2018, 2020, 47, 5],
+      ["Napoli", 2020, 2026, 225, 31]
+    ]),
+    g("Mauro Icardi", "Argentina", "Attaccante", 181, ["non conosciuta Club Infantil Sarratea", "Vecindario", "Barcellona", "Sampdoria"], [
+      ["Sampdoria", 2011, 2013, 33, 11],
+      ["Inter", 2013, 2019, 188, 111],
+      ["Paris Saint-Germain", 2019, 2022, 64, 23],
+      ["Galatasaray", 2022, 2026, 96, 65]
+    ]),
+    g("Michel Adopo", "Francia", "Centrocampista", 187, ["Bussy-Saint-Georges", "Torcy", "Torino"], [
+      ["Torino", 2020, 2021, 2, 0],
+      ["Viterbese", 2021, 2022, 48, 3, 1],
+      ["Torino", 2022, 2023, 11, 0],
+      ["Atalanta", 2023, 2024, 10, 0],
+      ["Cagliari", 2024, 2026, 74, 2]
+    ]),
+    g("Mile Svilar", "Belgio", "Portiere", 189, ["Beerschot", "Germinal Beerschot", "Anderlecht"], [
+      ["Benfica B", 2017, 2022, 56, -73],
+      ["Benfica", 2017, 2022, 6, -4],
+      ["Roma", 2022, 2026, 99, -91]
+    ]),
+    g("Moise Kean", "Italia", "Attaccante", 183, ["Don Bosco Asti", "Asti", "Torino", "Juventus"], [
+      ["Juventus", 2016, 2017, 3, 1],
+      ["Verona", 2017, 2018, 19, 4, 1],
+      ["Juventus", 2018, 2019, 13, 6],
+      ["Everton", 2019, 2020, 31, 2],
+      ["Paris Saint-Germain", 2020, 2021, 26, 13, 1],
+      ["Everton", 2021, 2022, 1, 0],
+      ["Juventus", 2021, 2024, 79, 11],
+      ["Fiorentina", 2024, 2026, 59, 27],
+      ["Como", 2026, 2026, 4, 0, 1]
+    ]),
+    g("Nico Paz", "Argentina", "Centrocampista, attaccante", 185, ["CD San Juan", "Tenerife", "Real Madrid"], [
+      ["Real M. Castilla", 2021, 2024, 49, 11],
+      ["Real Madrid", 2023, 2024, 4, 0],
+      ["Como", 2024, 2026, 75, 19]
+    ]),
+    g("Nicol\xF2 Barella", "Italia", "Centrocampista", 172, ["Gigi Riva", "Cagliari"], [
+      ["Cagliari", 2014, 2016, 8, 0],
+      ["Como", 2016, 2017, 16, 0, 1],
+      ["Cagliari", 2016, 2019, 97, 7],
+      ["Inter", 2019, 2026, 243, 22]
+    ]),
+    g("Nikola Krstovi\u0107", "Montenegro", "Attaccante", 185, ["Zeta"], [
+      ["Zeta", 2016, 2019, 92, 37],
+      ["Stella Rossa", 2019, 2020, 6, 0],
+      ["Grafi\u010Dar Belgrado", 2020, 2021, 6, 2, 1],
+      ["Stella Rossa", 2020, 2021, 15, 2],
+      ["Dunajsk\xE1 Streda", 2021, 2023, 37, 19],
+      ["Lecce", 2023, 2025, 72, 18],
+      ["Atalanta", 2025, 2026, 38, 11]
+    ]),
+    g("Nikola Vla\u0161i\u0107", "Croazia", "Centrocampista, attaccante", 178, ["Omladinac Vranjic", "Hajduk Spalato"], [
+      ["Hajduk Spalato", 2014, 2017, 86, 11],
+      ["Everton", 2017, 2018, 12, 0],
+      ["CSKA Mosca", 2018, 2021, 86, 28],
+      ["West Ham Utd", 2021, 2022, 19, 1],
+      ["Torino", 2022, 2026, 139, 21]
+    ]),
+    g("Pio Esposito", "Italia", "Attaccante", 191, ["Voluntas Brescia", "Brescia", "Inter"], [
+      ["Spezia", 2023, 2025, 73, 20, 1],
+      ["Inter", 2025, 2026, 40, 9]
+    ]),
+    g("Piotr Zieli\u0144ski", "Polonia", "Centrocampista", 180, ["Orze\u0142 Z\u0105bkowice \u015Al\u0105skie", "Zag\u0142\u0119bie Lubin", "Udinese"], [
+      ["Udinese", 2012, 2014, 19, 0],
+      ["Empoli", 2014, 2016, 63, 5, 1],
+      ["Napoli", 2016, 2024, 281, 37],
+      ["Inter", 2024, 2026, 65, 9]
+    ]),
+    g("Rafael Le\xE3o", "Portogallo", "Attaccante", 188, ["Amora", "Foot 21", "Sporting Lisbona"], [
+      ["Sporting Lisbona B", 2017, 2018, 12, 7],
+      ["Sporting Lisbona", 2017, 2018, 3, 1],
+      ["Lilla", 2018, 2019, 24, 8],
+      ["Milan", 2019, 2026, 227, 64],
+      ["Galatasaray", 2026, 2026, 3, 0]
+    ]),
+    g("Rasmus H\xF8jlund", "Danimarca", "Attaccante", 191, ["H\xF8rsholm Usser\xF8d", "Br\xF8ndby", "Copenaghen"], [
+      ["Copenaghen", 2020, 2022, 19, 0],
+      ["Sturm Graz", 2022, 2023, 18, 9],
+      ["Atalanta", 2022, 2023, 32, 9],
+      ["Manchester Utd", 2023, 2025, 62, 14],
+      ["Napoli", 2025, 2026, 38, 14]
+    ]),
+    g("Riccardo Orsolini", "Italia", "Attaccante, centrocampista", 183, ["Ascoli"], [
+      ["Ascoli", 2015, 2017, 51, 8],
+      ["Atalanta", 2017, 2018, 8, 0, 1],
+      ["Bologna", 2018, 2026, 276, 75]
+    ]),
+    g("Ruslan Malinovskyj", "Ucraina", "Centrocampista, attaccante", 181, ["Pol\u0456ssja \u017Dytomyr", "\u0160achtar"], [
+      ["\u0160achtar-3", 2011, 2013, 39, 10],
+      ["Sevastopol'", 2013, 2014, 16, 1, 1],
+      ["Zorja", 2013, 2016, 44, 7, 1],
+      ["Genk", 2016, 2019, 73, 16],
+      ["Atalanta", 2019, 2023, 115, 23],
+      ["Olympique Marsiglia", 2023, 2024, 20, 1],
+      ["Genoa", 2023, 2026, 71, 10],
+      ["Trabzonspor", 2026, 2026, 0, 0]
+    ]),
+    g("Santiago Castro", "Argentina", "Attaccante", 180, ["V\xE9lez Sarsfield"], [
+      ["V\xE9lez Sarsfield", 2021, 2024, 39, 2],
+      ["Bologna", 2024, 2026, 79, 16],
+      ["Roma", 2026, 2026, 4, 0]
+    ]),
+    g("Scott McTominay", "Inghilterra", "Centrocampista", 190, ["Manchester Utd"], [
+      ["Manchester Utd", 2017, 2024, 178, 19],
+      ["Napoli", 2024, 2026, 69, 22]
+    ]),
+    g("Sebastiano Esposito", "Italia", "Attaccante", 186, ["Club Napoli", "Brescia", "Inter"], [
+      ["Inter", 2019, 2020, 7, 1],
+      ["SPAL", 2020, 2021, 10, 1, 1],
+      ["Venezia", 2021, 2022, 18, 2, 1],
+      ["Basilea", 2021, 2022, 23, 6, 1],
+      ["Anderlecht", 2022, 2023, 14, 1, 1],
+      ["Bari", 2023, 2024, 11, 4, 1],
+      ["Sampdoria", 2023, 2024, 22, 6, 1],
+      ["Empoli", 2024, 2025, 33, 8, 1],
+      ["Inter", 2025, 2026, 0, 0],
+      ["Cagliari", 2025, 2026, 36, 7],
+      ["Sassuolo", 2026, 2026, 2, 1, 1]
+    ]),
+    g("Simone Canestrelli", "Italia", "Difensore", 192, ["Empoli"], [
+      ["AlbinoLeffe", 2019, 2021, 63, 2],
+      ["Empoli", 2021, 2022, 0, 0],
+      ["Crotone", 2021, 2022, 26, 2, 1],
+      ["Pisa", 2022, 2023, 12, 2],
+      ["Como", 2023, 2024, 5, 0, 1],
+      ["Pisa", 2023, 2026, 109, 7]
+    ]),
+    g("Stefano Moreo", "Italia", "Attaccante", 191, ["Milan", "Caronnese"], [
+      ["Caronnese", 2011, 2013, 40, 14],
+      ["Virtus Entella", 2013, 2015, 30, 6],
+      ["Teramo", 2015, 2016, 33, 6, 1],
+      ["Virtus Entella", 2016, 2017, 0, 0],
+      ["Venezia", 2016, 2018, 52, 13],
+      ["Palermo", 2018, 2019, 46, 6],
+      ["Empoli", 2019, 2021, 46, 4],
+      ["Brescia", 2021, 2023, 58, 11],
+      ["Pisa", 2023, 2026, 122, 20]
+    ]),
+    g("Victor Nelsson", "Danimarca", "Difensore, centrocampista", 185, ["Hornb\xE6k IF", "Nordsj\xE6lland"], [
+      ["Nordsj\xE6lland", 2016, 2019, 90, 1],
+      ["Copenaghen", 2019, 2021, 63, 1],
+      ["Galatasaray", 2021, 2025, 112, 3],
+      ["Roma", 2025, 2026, 4, 0, 1],
+      ["Verona", 2025, 2026, 38, 0, 1],
+      ["Nordsj\xE6lland", 2026, 2026, 0, 0]
+    ]),
+    g("Wladimiro Falcone", "Italia", "Portiere", 195, ["Lodigiani", "Vigor Perconti", "Sampdoria"], [
+      ["Sampdoria", 2012, 2014, 0, 0],
+      ["Como", 2014, 2015, 9, -9, 1],
+      ["Savona", 2015, 2016, 29, -36, 1],
+      ["Livorno", 2016, 2017, 1, 0, 1],
+      ["Sampdoria", 2017, 2018, 0, 0],
+      ["Bassano Virtus", 2017, 2018, 0, 0, 1],
+      ["Gavorrano", 2018, 2019, 16, -14, 1],
+      ["Lucchese", 2018, 2019, 36, -40, 1],
+      ["Sampdoria", 2019, 2020, 2, -5],
+      ["Cosenza", 2020, 2021, 36, -43, 1],
+      ["Sampdoria", 2021, 2022, 10, -14],
+      ["Lecce", 2022, 2026, 157, -218]
+    ])
+  ];
+  const MIN_STAGIONI = 3;
+  const MIN_TAPPE = 2;
+  const num = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  function annoInizio(stagione) {
+    if (typeof stagione === "number") return stagione;
+    const m = String(stagione ?? "").match(/(\d{4})/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  const campo = (riga, ...chiavi) => {
+    for (const k of chiavi) {
+      const v = riga[k];
+      if (v !== void 0 && v !== null && v !== "") return v;
+    }
+    return null;
+  };
+  function costruisciCarriere(righe) {
+    const perGiocatore = /* @__PURE__ */ new Map();
+    for (const r of righe) {
+      const nome = String(campo(r, "giocatore", "nome", "player") ?? "").trim();
+      const squadra = String(campo(r, "squadra", "team", "club") ?? "").trim();
+      const anno = annoInizio(campo(r, "stagione", "season", "anno"));
+      if (!nome || !squadra || anno === null) continue;
+      if (!perGiocatore.has(nome)) {
+        perGiocatore.set(nome, { nome, nazione: null, ruolo: null, altezza: null, righe: [] });
+      }
+      const p = perGiocatore.get(nome);
+      p.nazione = p.nazione ?? campo(r, "nazione", "nazionalita", "nationality");
+      p.ruolo = p.ruolo ?? campo(r, "ruolo", "posizione", "position");
+      p.altezza = p.altezza ?? campo(r, "altezza", "height");
+      p.righe.push({
+        anno,
+        squadra,
+        presenze: num(campo(r, "presenze", "pres", "apps")),
+        gol: num(campo(r, "gol", "goals", "reti"))
+      });
+    }
+    const fuori = [];
+    for (const p of perGiocatore.values()) {
+      p.righe.sort((a, b) => a.anno - b.anno || a.squadra.localeCompare(b.squadra));
+      const tappe = [];
+      for (const r of p.righe) {
+        const ultima = tappe[tappe.length - 1];
+        if (ultima && ultima.squadra === r.squadra && r.anno <= ultima.al) {
+          ultima.al = Math.max(ultima.al, r.anno + 1);
+          ultima.presenze += r.presenze;
+          ultima.gol += r.gol;
+          ultima.stagioni += 1;
+        } else {
+          tappe.push({
+            squadra: r.squadra,
+            dal: r.anno,
+            al: r.anno + 1,
+            presenze: r.presenze,
+            gol: r.gol,
+            prestito: false,
+            stagioni: 1
+          });
+        }
+      }
+      const stagioni = tappe.reduce((s, t) => s + t.stagioni, 0);
+      if (stagioni < MIN_STAGIONI) continue;
+      fuori.push({
+        nome: p.nome,
+        nazione: p.nazione || null,
+        ruolo: p.ruolo || null,
+        altezza: p.altezza ? num(p.altezza) : null,
+        giovanili: [],
+        tappe
+      });
+    }
+    return fuori;
+  }
+  const normalizza = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  const GIOCATORI = (() => {
+    const tutti = [...CARRIERE, ...costruisciCarriere(ARCHIVIO)].filter(
+      (p) => p.nome && p.tappe.length >= MIN_TAPPE
+    );
+    const peso = (p) => p.tappe.reduce((s, t) => s + t.presenze, 0);
+    const ordinati = [...tutti].sort((a, b) => peso(b) - peso(a));
+    const fama = /* @__PURE__ */ new Map();
+    ordinati.forEach((p, i) => {
+      const q = i / Math.max(1, ordinati.length - 1);
+      fama.set(p, q < 0.25 ? 3 : q < 0.6 ? 2 : 1);
+    });
+    return tutti.map((p, i) => ({
+      ...p,
+      fama: fama.get(p) ?? 2,
+      id: `${i}-${normalizza(p.nome).replace(/ /g, "-")}`
+    })).sort((a, b) => a.nome.localeCompare(b.nome, "it"));
+  })();
+  const DATA_INIZIO = "2026-10-01";
+  const TENTATIVI_MAX = 6;
+  const PUNTI_BASE = 1e3;
+  const COSTO_ERRORE = 150;
+  const COSTO_INDIZIO = 75;
+  const PUNTI_MIN = 100;
+  const DIFFICOLTA = [
+    { id: "tutti", label: "Tutti", test: () => true },
+    { id: "facile", label: "Facile", test: (p) => p.fama >= 3 },
+    { id: "medio", label: "Medio", test: (p) => p.fama === 2 },
+    { id: "difficile", label: "Difficile", test: (p) => p.fama <= 1 }
+  ];
+  function hashStringa(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = h << 13 | h >>> 19;
+    }
+    return () => {
+      h = Math.imul(h ^ h >>> 16, 2246822507);
+      h = Math.imul(h ^ h >>> 13, 3266489909);
+      return (h ^= h >>> 16) >>> 0;
+    };
+  }
+  const p2 = (n) => String(n).padStart(2, "0");
+  const chiaveData = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+  const dataOggi = () => chiaveData(/* @__PURE__ */ new Date());
+  const daChiave = (k) => {
+    const [a, m, g_] = k.split("-").map(Number);
+    return new Date(a, m - 1, g_);
+  };
+  const etichettaGiorno = (k, lunga) => daChiave(k).toLocaleDateString(
+    "it-IT",
+    lunga ? { weekday: "long", day: "numeric", month: "long" } : { weekday: "short", day: "numeric", month: "short" }
+  );
+  function calendario() {
+    const giorni = [];
+    const fine = daChiave(dataOggi());
+    const cur = daChiave(DATA_INIZIO);
+    let guardia = 0;
+    while (cur <= fine && guardia++ < 1200) {
+      giorni.push(chiaveData(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return giorni.reverse();
+  }
+  function mulberry32(a) {
+    return () => {
+      a = a + 1831565813 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function indiceGiorno(giorno) {
+    const ms = daChiave(giorno).getTime() - daChiave(DATA_INIZIO).getTime();
+    return Math.max(0, Math.round(ms / 864e5));
+  }
+  const _cicli = /* @__PURE__ */ new Map();
+  function ordineCiclo(ciclo) {
+    if (_cicli.has(ciclo)) return _cicli.get(ciclo);
+    const n = GIOCATORI.length;
+    const ordine = GIOCATORI.map((_, i) => i);
+    const rnd = mulberry32(hashStringa(`universo-sportivo:ciclo:${ciclo}`)());
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [ordine[i], ordine[j]] = [ordine[j], ordine[i]];
+    }
+    _cicli.set(ciclo, ordine);
+    return ordine;
+  }
+  function sceltaDelGiorno(giorno) {
+    const n = GIOCATORI.length;
+    if (!n) return null;
+    const i = indiceGiorno(giorno);
+    return GIOCATORI[ordineCiclo(Math.floor(i / n))[i % n]];
+  }
+  function sceltaCasuale(pool, seme) {
+    if (!pool.length) return null;
+    const n = hashStringa(`infinito:${seme}`)();
+    return pool[n % pool.length];
+  }
+  const leggi = (k, fallback) => {
+    try {
+      const v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+  const scrivi = (k, v) => {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch {
+    }
+  };
+  const DENTRO_IFRAME = typeof window !== "undefined" && (() => {
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  })();
+  const INCORPORATO = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
+  const PAGINA_GIOCHI = "https://universosportivo.com/giochi";
+  const K_STATS = "us-indovina-giocatore-stats-v1";
+  const K_GIORNI = "us-indovina-giocatore-giorni-v1";
+  const K_TEMA = "us-indovina-giocatore-tema-v1";
+  const STATS_VUOTE = {
+    giocate: 0,
+    vinte: 0,
+    serie: 0,
+    serieMax: 0,
+    distribuzione: [0, 0, 0, 0, 0, 0]
+  };
+  const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=Newsreader:opsz,wght@6..72,400..600&family=Roboto+Mono:wght@400;700&display=swap');
+
+/* Layout: colonna unica, scala della carriera con rail degli anni a sinistra,
+   barra di gioco ancorata in basso. Due pelli: carta sportiva e notte. */
+:root{
+  --bg:#F6EDE6;
+  --surface:#FFFBF8;
+  --surface-2:#EDE0D7;
+  --ink:#16211F;
+  --ink-soft:#6A7772;
+  --line:#DCC9BC;
+  --accent:#0E5C4A;
+  --accent-ink:#FFFFFF;
+  --hot:#C8305B;
+  --ok:#1F7A4D;
+  --warn:#9A6514;
+  --shadow:0 1px 2px rgba(22,33,31,.08), 0 8px 24px -12px rgba(22,33,31,.22);
+  --glow:none;
+
+  --font-display:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --font-ui:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --font-body:'Newsreader',Georgia,'Times New Roman',serif;
+  --font-data:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+/* Notte: blu-nero profondo, come Higher or Lower. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#070910;
+    --surface:#0F1320;
+    --surface-2:#161B2C;
+    --ink:#E9EBF5;
+    --ink-soft:#8891AB;
+    --line:#222942;
+    --accent:#3DDC97;
+    --accent-ink:#04140C;
+    --hot:#FF6B8A;
+    --ok:#3DDC97;
+    --warn:#F0B429;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -16px rgba(0,0,0,.9);
+    --glow:0 0 0 1px rgba(61,220,151,.14), 0 0 28px -10px rgba(61,220,151,.45);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#070910;
+  --surface:#0F1320;
+  --surface-2:#161B2C;
+  --ink:#E9EBF5;
+  --ink-soft:#8891AB;
+  --line:#222942;
+  --accent:#3DDC97;
+  --accent-ink:#04140C;
+  --hot:#FF6B8A;
+  --ok:#3DDC97;
+  --warn:#F0B429;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -16px rgba(0,0,0,.9);
+  --glow:0 0 0 1px rgba(61,220,151,.14), 0 0 28px -10px rgba(61,220,151,.45);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font-ui); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:0 132px}
+
+/* Testata */
+.masthead{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:30;
+  background:var(--bg); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:8px;
+  padding-block:14px 12px; margin-bottom:20px;
+}
+.brandline{flex:1;min-width:0;padding-right:4px}
+.kicker{
+  font-family:var(--font-ui); font-size:10px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--hot);
+}
+.wordmark{
+  margin:2px 0 0; font-family:var(--font-display);
+  font-variation-settings:'wdth' 118; font-weight:800;
+  font-size:clamp(18px,5.2vw,30px); line-height:1; letter-spacing:-.015em;
+  text-transform:uppercase; text-wrap:balance;
+}
+.iconbtn{
+  display:grid;place-items:center;width:36px;height:36px;flex:none;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;
+}
+@media (max-width:420px){.iconbtn{width:32px;height:32px}}
+.iconbtn:hover{border-color:var(--accent)}
+.iconbtn.acceso{border-color:var(--accent);color:var(--accent);box-shadow:var(--glow)}
+.iconbtn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* Selettori */
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.segment{display:flex;background:var(--surface-2);border-radius:999px;padding:3px;gap:2px}
+.segment button{
+  border:0;background:transparent;border-radius:999px;
+  padding:6px 13px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  letter-spacing:.01em;white-space:nowrap;
+}
+.segment button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+/* Intestazione di sezione */
+.sectionhead{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid var(--ink);
+}
+.sectionhead h2{
+  margin:0;font-family:var(--font-display);font-variation-settings:'wdth' 112;
+  font-weight:800;font-size:13px;letter-spacing:.11em;text-transform:uppercase;
+}
+.sectionhead span{font-family:var(--font-data);font-size:11.5px;color:var(--ink-soft)}
+
+/* Scala della carriera */
+.ladder{list-style:none;margin:0 0 24px;padding:0;position:relative}
+.ladder::before{
+  content:"";position:absolute;left:51px;top:10px;bottom:10px;
+  width:2px;background:var(--line);border-radius:2px;
+}
+.step{display:grid;grid-template-columns:44px 16px 1fr;align-items:start;gap:0 12px;padding:7px 0}
+.years{
+  font-family:var(--font-data);font-size:11px;font-variant-numeric:tabular-nums;
+  color:var(--ink-soft);text-align:right;padding-top:5px;line-height:1.3;
+}
+.years b{display:block;font-weight:700;color:var(--ink)}
+.node{position:relative;width:16px;height:16px;margin-top:6px}
+.node i{
+  position:absolute;inset:3px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--line);
+}
+.step.on .node i{background:var(--accent);border-color:var(--accent)}
+.step.target .node i{background:var(--hot);border-color:var(--hot);inset:1px}
+
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:10px 13px;min-width:0;
+}
+.step.on .card{box-shadow:var(--shadow)}
+.step.target .card{border-color:var(--hot);border-style:dashed}
+.club{
+  font-family:var(--font-display);font-variation-settings:'wdth' 108;
+  font-weight:800;font-size:16px;line-height:1.2;letter-spacing:-.01em;
+  text-transform:uppercase;overflow-wrap:anywhere;
+}
+.club.coperto{color:var(--ink-soft);letter-spacing:.22em;font-weight:700}
+.club .pr{
+  font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--warn);
+  vertical-align:middle;margin-right:6px;
+}
+.statline{
+  margin-top:3px;font-family:var(--font-data);font-size:11px;
+  font-variant-numeric:tabular-nums;color:var(--ink-soft);
+}
+.statline em{font-style:normal;color:var(--accent);font-weight:700}
+@media (prefers-reduced-motion: no-preference){
+  .step.on .card{animation:pop .36s cubic-bezier(.2,.8,.3,1) both}
+}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* Indizi */
+.clues{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.clue{
+  display:flex;flex-direction:column;gap:1px;flex:1 1 150px;min-width:0;
+  text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:11px;padding:9px 12px;
+}
+.clue:not(:disabled):hover{border-color:var(--accent)}
+.clue small{
+  font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.clue span{font-family:var(--font-display);font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
+.clue:disabled{cursor:default;opacity:1}
+.clue.chiuso span{color:var(--ink-soft);font-weight:600;font-size:13px}
+.clue.aperto{border-color:var(--accent);background:var(--surface-2)}
+
+/* Tentativi */
+.guesses{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-direction:column;gap:6px}
+.guess{
+  display:flex;align-items:center;gap:9px;background:var(--surface-2);
+  border-radius:9px;padding:8px 12px;font-size:14px;font-weight:600;
+}
+.guess .x{color:var(--hot);font-family:var(--font-data);font-weight:700;flex:none}
+.guess .nm{min-width:0;overflow-wrap:anywhere}
+
+/* Esito */
+.result{
+  background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:12px;padding:16px 18px;margin-bottom:22px;box-shadow:var(--shadow);
+}
+.result.persa{border-left-color:var(--hot)}
+.result h3{
+  margin:0;font-family:var(--font-display);font-variation-settings:'wdth' 118;
+  font-weight:800;font-size:clamp(19px,5vw,25px);line-height:1.1;
+  text-transform:uppercase;letter-spacing:-.015em;text-wrap:balance;
+}
+.result p{margin:7px 0 0;font-family:var(--font-body);font-size:16px;color:var(--ink-soft)}
+.result p b{color:var(--ink)}
+.resultactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+
+.btn{
+  border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  border-radius:10px;padding:9px 16px;font-weight:700;font-size:14px;
+}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+
+/* Archivio */
+.archivio{list-style:none;margin:0 0 24px;padding:0;display:flex;flex-direction:column;gap:6px}
+.giorno{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;
+  width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-radius:11px;padding:11px 14px;
+}
+.giorno:hover{border-color:var(--accent)}
+.giorno .data{
+  font-family:var(--font-data);font-size:12px;font-variant-numeric:tabular-nums;
+  color:var(--ink);font-weight:700;white-space:nowrap;
+}
+.giorno .stato{font-size:12.5px;color:var(--ink-soft);min-width:0;overflow-wrap:anywhere}
+.giorno .stato b{font-weight:700}
+.giorno .stato.vinta b{color:var(--ok)}
+.giorno .stato.persa b{color:var(--hot)}
+.giorno .freccia{color:var(--ink-soft);font-size:17px;line-height:1}
+.giorno.oggi{border-color:var(--accent);box-shadow:var(--glow)}
+.tornaindietro{
+  display:inline-flex;align-items:center;gap:7px;background:transparent;border:0;
+  padding:0;margin-bottom:14px;font-size:13px;font-weight:700;color:var(--ink-soft);
+}
+.tornaindietro:hover{color:var(--accent)}
+
+/* Barra di gioco */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--bg);
+  border-top:1px solid var(--line);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+}
+.dockinner{max-width:680px;margin:0 auto;position:relative}
+.meter{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-bottom:9px;font-family:var(--font-data);font-size:11px;
+  font-variant-numeric:tabular-nums;color:var(--ink-soft);
+}
+.pips{display:flex;gap:5px}
+.pips i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.pips i.used{background:var(--hot)}
+.score{font-weight:700;color:var(--ink)}
+
+.field{position:relative}
+.field input{
+  width:100%;background:var(--surface);color:var(--ink);
+  border:1.5px solid var(--line);border-radius:11px;
+  padding:12px 14px;font-size:16px;font-family:var(--font-ui);font-weight:500;
+}
+.field input::placeholder{color:var(--ink-soft);font-weight:400}
+.field input:focus{border-color:var(--accent);outline:none}
+.field input:disabled{opacity:.55}
+
+.suggest{
+  position:absolute;left:0;right:0;bottom:calc(100% + 7px);
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  box-shadow:var(--shadow);overflow:hidden;max-height:260px;overflow-y:auto;
+}
+.suggest button{
+  display:block;width:100%;text-align:left;border:0;background:transparent;
+  padding:10px 14px;font-size:14.5px;font-weight:600;
+}
+.suggest button + button{border-top:1px solid var(--line)}
+.suggest button[data-active="true"]{background:var(--surface-2);color:var(--accent)}
+.suggest .vuoto{padding:11px 14px;color:var(--ink-soft);font-size:14px;font-family:var(--font-body)}
+
+/* Modale */
+.scrim{
+  position:fixed;inset:0;z-index:60;background:rgba(5,7,12,.6);
+  display:flex;align-items:flex-end;justify-content:center;padding:16px;
+}
+@media (min-width:560px){.scrim{align-items:center}}
+.modal{
+  background:var(--bg);border:1px solid var(--line);border-radius:16px;
+  width:100%;max-width:460px;max-height:84vh;overflow-y:auto;
+  padding:20px;box-shadow:var(--shadow);
+}
+.modal h3{
+  margin:0 0 4px;font-family:var(--font-display);font-variation-settings:'wdth' 115;
+  font-weight:800;font-size:21px;text-transform:uppercase;letter-spacing:-.01em;
+}
+.modal p,.modal li{font-family:var(--font-body);font-size:15.5px;color:var(--ink-soft)}
+.modal ol{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.modal p b,.modal li b{color:var(--ink)}
+
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px}
+.stat{background:var(--surface-2);border-radius:10px;padding:10px 8px;text-align:center}
+.stat b{
+  display:block;font-family:var(--font-data);font-weight:700;font-size:20px;
+  font-variant-numeric:tabular-nums;
+}
+.stat small{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink-soft);margin-top:2px}
+
+.bars{display:flex;flex-direction:column;gap:5px;margin-top:14px}
+.bar{display:grid;grid-template-columns:16px 1fr;align-items:center;gap:8px;
+  font-family:var(--font-data);font-size:11px}
+.bar i{display:block;height:19px;border-radius:4px;background:var(--accent);
+  min-width:22px;color:var(--accent-ink);font-weight:700;text-align:right;
+  padding-right:6px;line-height:19px}
+
+.foot{
+  margin-top:26px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  font-family:var(--font-data);font-size:11px;color:var(--ink-soft);
+}
+.foot a{color:var(--accent);font-weight:700;text-decoration:none}
+.foot a:hover{text-decoration:underline}
+
+.tuttigiochi{
+  display:block;width:100%;margin-top:18px;padding:13px 16px;text-align:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  font-family:var(--font-display);font-variation-settings:'wdth' 108;
+  font-weight:800;font-size:13.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink);text-decoration:none;
+}
+.tuttigiochi:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Incorporato in un iframe ad altezza automatica: niente scroll interno, quindi
+   la barra di gioco torna nel flusso e la pagina ospite fa da contenitore. */
+:root[data-incorporato],
+:root[data-incorporato] body,
+:root[data-incorporato] #root{height:auto;min-height:0}
+:root[data-incorporato] .wrap{padding-bottom:20px}
+:root[data-incorporato] .masthead{position:static}
+:root[data-incorporato] .dock{position:static;border-top:0;padding:0 0 4px}
+:root[data-incorporato] .scrim{align-items:flex-start;padding-top:20px}
+`;
+  const TRACCIATI = {
+    stats: "M4 19V10M10 19V5M16 19v-6M22 19H2",
+    help: "M9.1 9a3 3 0 1 1 4.2 2.7c-.8.4-1.3 1.1-1.3 2M12 17h.01M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z",
+    close: "M18 6 6 18M6 6l12 12",
+    luna: "M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z",
+    sole: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10ZM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"
+  };
+  function Icona({ nome }) {
+    return /* @__PURE__ */ React.createElement("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, /* @__PURE__ */ React.createElement("path", { d: TRACCIATI[nome] }));
+  }
+  function Modale({ titolo, onClose, children }) {
+    useEffect(() => {
+      const esc = (e) => e.key === "Escape" && onClose();
+      window.addEventListener("keydown", esc);
+      return () => window.removeEventListener("keydown", esc);
+    }, [onClose]);
+    return /* @__PURE__ */ React.createElement("div", { className: "scrim", onClick: onClose, role: "dialog", "aria-modal": "true" }, /* @__PURE__ */ React.createElement("div", { className: "modal", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("h3", { style: { flex: 1 } }, titolo), /* @__PURE__ */ React.createElement("button", { className: "iconbtn", onClick: onClose, "aria-label": "Chiudi" }, /* @__PURE__ */ React.createElement(Icona, { nome: "close" }))), children));
+  }
+  function Scala({ tappe, scoperte, finita }) {
+    return /* @__PURE__ */ React.createElement("ol", { className: "ladder" }, tappe.map((t, i) => {
+      const visibile = finita || i < scoperte;
+      const prossima = !finita && i === scoperte;
+      const portiere = t.gol < 0;
+      return /* @__PURE__ */ React.createElement("li", { key: i, className: `step${visibile ? " on" : ""}${prossima ? " target" : ""}` }, /* @__PURE__ */ React.createElement("div", { className: "years" }, /* @__PURE__ */ React.createElement("b", null, t.dal), t.al !== t.dal ? t.al : null), /* @__PURE__ */ React.createElement("div", { className: "node" }, /* @__PURE__ */ React.createElement("i", null)), /* @__PURE__ */ React.createElement("div", { className: "card" }, /* @__PURE__ */ React.createElement("div", { className: `club${visibile ? "" : " coperto"}` }, visibile && t.prestito ? /* @__PURE__ */ React.createElement("span", { className: "pr" }, "PRESTITO") : null, visibile ? t.squadra : "??????"), /* @__PURE__ */ React.createElement("div", { className: "statline" }, t.presenze > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("em", null, t.presenze), " presenze", portiere ? /* @__PURE__ */ React.createElement(React.Fragment, null, " \xB7 ", /* @__PURE__ */ React.createElement("em", null, -t.gol), " subiti") : t.gol > 0 ? /* @__PURE__ */ React.createElement(React.Fragment, null, " \xB7 ", /* @__PURE__ */ React.createElement("em", null, t.gol), " gol") : null) : `${Math.max(1, t.al - t.dal)} stagion${t.al - t.dal === 1 ? "e" : "i"}`)));
+    }));
+  }
+  function Indizi({ giocatore, aperti, onApri, finita }) {
+    const voci = [
+      { id: "ruolo", label: "Ruolo", valore: giocatore.ruolo },
+      { id: "nazione", label: "Nazionalit\xE0", valore: giocatore.nazione },
+      { id: "altezza", label: "Altezza", valore: giocatore.altezza ? `${giocatore.altezza} cm` : null },
+      {
+        id: "giovanili",
+        label: "Settore giovanile",
+        valore: giocatore.giovanili && giocatore.giovanili.length ? giocatore.giovanili.join(", ") : null
+      }
+    ].filter((v) => v.valore);
+    if (!voci.length) return null;
+    return /* @__PURE__ */ React.createElement("div", { className: "clues" }, voci.map((v) => {
+      const aperto = finita || aperti.includes(v.id);
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: v.id,
+          className: `clue ${aperto ? "aperto" : "chiuso"}`,
+          disabled: aperto || finita,
+          onClick: () => onApri(v.id)
+        },
+        /* @__PURE__ */ React.createElement("small", null, v.label),
+        /* @__PURE__ */ React.createElement("span", null, aperto ? v.valore : `Scopri \xB7 \u2212${COSTO_INDIZIO}`)
+      );
+    }));
+  }
+  function Campo({ pool, onInvia, disabilitato }) {
+    const [testo, setTesto] = useState("");
+    const [attivo, setAttivo] = useState(0);
+    const [aperto, setAperto] = useState(false);
+    const box = useRef(null);
+    const q = normalizza(testo);
+    const opzioni = useMemo(() => {
+      if (q.length < 2) return [];
+      const inizia = [];
+      const contiene = [];
+      for (const p of pool) {
+        const n = normalizza(p.nome);
+        if (n.startsWith(q) || n.split(" ").some((w) => w.startsWith(q))) inizia.push(p);
+        else if (n.includes(q)) contiene.push(p);
+        if (inizia.length >= 8) break;
+      }
+      return [...inizia, ...contiene].slice(0, 8);
+    }, [q, pool]);
+    useEffect(() => setAttivo(0), [q]);
+    useEffect(() => {
+      const fuori = (e) => {
+        if (box.current && !box.current.contains(e.target)) setAperto(false);
+      };
+      document.addEventListener("mousedown", fuori);
+      return () => document.removeEventListener("mousedown", fuori);
+    }, []);
+    const scegli = (p) => {
+      onInvia(p);
+      setTesto("");
+      setAperto(false);
+    };
+    const tasti = (e) => {
+      if (!opzioni.length) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setAttivo((a) => (a + 1) % opzioni.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setAttivo((a) => (a - 1 + opzioni.length) % opzioni.length);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        scegli(opzioni[attivo]);
+      }
+    };
+    return /* @__PURE__ */ React.createElement("div", { className: "field", ref: box }, aperto && q.length >= 2 && /* @__PURE__ */ React.createElement("div", { className: "suggest" }, opzioni.length ? opzioni.map((p, i) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: p.id,
+        "data-active": i === attivo,
+        onMouseEnter: () => setAttivo(i),
+        onClick: () => scegli(p)
+      },
+      p.nome
+    )) : /* @__PURE__ */ React.createElement("div", { className: "vuoto" }, "Nessun giocatore con questo nome.")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        id: "campo-tentativo",
+        value: testo,
+        disabled: disabilitato,
+        placeholder: disabilitato ? "Partita conclusa" : "Scrivi un nome\u2026",
+        autoComplete: "off",
+        onChange: (e) => {
+          setTesto(e.target.value);
+          setAperto(true);
+        },
+        onFocus: () => setAperto(true),
+        onKeyDown: tasti
+      }
+    ));
+  }
+  function Archivio({ giorni, esiti, oggi, onApri }) {
+    const daGiocare = giorni.filter((k) => !esiti[k]).length;
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sectionhead" }, /* @__PURE__ */ React.createElement("h2", null, "Archivio"), /* @__PURE__ */ React.createElement("span", null, daGiocare, " da giocare su ", giorni.length)), /* @__PURE__ */ React.createElement("ul", { className: "archivio" }, giorni.map((k) => {
+      const e = esiti[k];
+      const stato = e ? e.esito === "vinta" ? { cls: "vinta", testo: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("b", null, "Indovinato"), " in ", e.tentativi, "/", TENTATIVI_MAX, " \xB7 ", e.punti, " punti") } : { cls: "persa", testo: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("b", null, "Non indovinato"), " \xB7 era ", e.nome) } : { cls: "", testo: k === oggi ? "Sfida di oggi, ancora da giocare" : "Da recuperare" };
+      return /* @__PURE__ */ React.createElement("li", { key: k }, /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          className: `giorno${k === oggi ? " oggi" : ""}`,
+          onClick: () => onApri(k)
+        },
+        /* @__PURE__ */ React.createElement("span", { className: "data" }, etichettaGiorno(k, false)),
+        /* @__PURE__ */ React.createElement("span", { className: `stato ${stato.cls}` }, stato.testo),
+        /* @__PURE__ */ React.createElement("span", { className: "freccia", "aria-hidden": "true" }, "\u203A")
+      ));
+    })));
+  }
+  function App() {
+    const [tema, setTema] = useState(() => leggi(K_TEMA, null));
+    const [modalita, setModalita] = useState("giorno");
+    const [giorno, setGiorno] = useState(dataOggi);
+    const [listaArchivio, setListaArchivio] = useState(false);
+    const [semeInfinito, setSemeInfinito] = useState(() => Math.floor(Math.random() * 1e9));
+    const [livello, setLivello] = useState("tutti");
+    const [tentativi, setTentativi] = useState([]);
+    const [indizi, setIndizi] = useState([]);
+    const [esito, setEsito] = useState(null);
+    const [pannello, setPannello] = useState(null);
+    const [copiato, setCopiato] = useState(false);
+    const [stats, setStats] = useState(() => leggi(K_STATS, STATS_VUOTE));
+    const [esiti, setEsiti] = useState(() => leggi(K_GIORNI, {}));
+    useEffect(() => {
+      const root = document.documentElement;
+      if (tema === "dark" || tema === "light") root.setAttribute("data-theme", tema);
+      else root.removeAttribute("data-theme");
+    }, [tema]);
+    useEffect(() => {
+      if (!INCORPORATO) return;
+      document.documentElement.setAttribute("data-incorporato", "1");
+      const invia = () => {
+        const altezza = Math.ceil(document.body.getBoundingClientRect().height);
+        try {
+          window.parent.postMessage(
+            { universoSportivo: true, gioco: "indovina-il-giocatore", altezza },
+            "*"
+          );
+        } catch {
+        }
+      };
+      invia();
+      const osservatore = new ResizeObserver(invia);
+      osservatore.observe(document.body);
+      window.addEventListener("load", invia);
+      return () => {
+        osservatore.disconnect();
+        window.removeEventListener("load", invia);
+      };
+    }, []);
+    const notte = tema === "dark" || tema === null && typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const cambiaTema = () => {
+      const nuovo = notte ? "light" : "dark";
+      setTema(nuovo);
+      scrivi(K_TEMA, nuovo);
+    };
+    const pool = useMemo(() => {
+      const regola = DIFFICOLTA.find((d) => d.id === livello) ?? DIFFICOLTA[0];
+      const p = GIOCATORI.filter(regola.test);
+      return p.length ? p : GIOCATORI;
+    }, [livello]);
+    const quotidiana = modalita !== "infinito";
+    const bersaglio = useMemo(
+      () => quotidiana ? sceltaDelGiorno(giorno) : sceltaCasuale(pool, semeInfinito),
+      [quotidiana, giorno, pool, semeInfinito]
+    );
+    const salvato = quotidiana ? esiti[giorno] : null;
+    const revisione = !!salvato;
+    useEffect(() => {
+      setTentativi([]);
+      setIndizi([]);
+      setCopiato(false);
+      setEsito(salvato ? salvato.esito : null);
+    }, [bersaglio?.id, giorno, modalita]);
+    const finita = esito !== null;
+    const partenza = bersaglio && bersaglio.tappe.length >= 3 ? 1 : 0;
+    const scoperte = Math.min(
+      partenza + tentativi.length,
+      bersaglio ? bersaglio.tappe.length : 0
+    );
+    const punti = Math.max(
+      PUNTI_MIN,
+      PUNTI_BASE - tentativi.length * COSTO_ERRORE - indizi.length * COSTO_INDIZIO
+    );
+    const registraStat = useCallback((vinta, nTentativi) => {
+      setStats((s) => {
+        const d = [...s.distribuzione];
+        if (vinta) d[Math.min(nTentativi - 1, TENTATIVI_MAX - 1)] += 1;
+        const serie = vinta ? s.serie + 1 : 0;
+        const next = {
+          giocate: s.giocate + 1,
+          vinte: s.vinte + (vinta ? 1 : 0),
+          serie,
+          serieMax: Math.max(s.serieMax, serie),
+          distribuzione: d
+        };
+        scrivi(K_STATS, next);
+        return next;
+      });
+    }, []);
+    const registraGiorno = useCallback((chiave, dati) => {
+      setEsiti((v) => {
+        if (v[chiave]) return v;
+        const next = { ...v, [chiave]: dati };
+        scrivi(K_GIORNI, next);
+        return next;
+      });
+    }, []);
+    const chiudi = (vinta, nTentativi, puntiFinali) => {
+      setEsito(vinta ? "vinta" : "persa");
+      registraStat(vinta, nTentativi);
+      if (quotidiana && !salvato) {
+        registraGiorno(giorno, {
+          esito: vinta ? "vinta" : "persa",
+          tentativi: nTentativi,
+          punti: vinta ? puntiFinali : 0,
+          nome: bersaglio.nome
+        });
+      }
+    };
+    const prova = (p) => {
+      if (finita || !bersaglio) return;
+      if (p.id === bersaglio.id) {
+        chiudi(true, tentativi.length + 1, punti);
+        return;
+      }
+      const nuovi = [...tentativi, p];
+      setTentativi(nuovi);
+      if (nuovi.length >= TENTATIVI_MAX) chiudi(false, nuovi.length, 0);
+    };
+    const apriIndizio = (id) => {
+      if (finita || indizi.includes(id)) return;
+      setIndizi((v) => [...v, id]);
+    };
+    const vaiA = (nuovaModalita) => {
+      setModalita(nuovaModalita);
+      setListaArchivio(nuovaModalita === "archivio");
+      if (nuovaModalita === "giorno") setGiorno(dataOggi());
+      if (nuovaModalita === "infinito") setSemeInfinito((s) => s + 1);
+    };
+    const apriGiorno = (k) => {
+      setGiorno(k);
+      setListaArchivio(false);
+    };
+    const altroGiocatore = () => {
+      setModalita("infinito");
+      setListaArchivio(false);
+      setSemeInfinito((s) => s + 1);
+    };
+    const testoCondivisione = () => {
+      const quadri = tentativi.map(() => "\u{1F7E5}").join("") + (esito === "vinta" ? "\u{1F7E9}" : "");
+      const d = daChiave(quotidiana ? giorno : dataOggi());
+      const data = `${p2(d.getDate())}/${p2(d.getMonth() + 1)}`;
+      return [
+        `\u26BD\uFE0F Indovina il Giocatore \u2014 ${data}`,
+        esito === "vinta" ? `Risolto in ${tentativi.length + 1}/${TENTATIVI_MAX} \xB7 ${punti} punti` : `Non risolto \xB7 ${TENTATIVI_MAX}/${TENTATIVI_MAX}`,
+        quadri,
+        "universosportivo.com"
+      ].join("\n");
+    };
+    const condividi = async () => {
+      const t = testoCondivisione();
+      const fatto = () => {
+        setCopiato(true);
+        setTimeout(() => setCopiato(false), 2200);
+      };
+      try {
+        await navigator.clipboard.writeText(t);
+        fatto();
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = t;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+          fatto();
+        } catch {
+        }
+        ta.remove();
+      }
+    };
+    const testata = /* @__PURE__ */ React.createElement("header", { className: "masthead" }, /* @__PURE__ */ React.createElement("div", { className: "brandline" }, /* @__PURE__ */ React.createElement("div", { className: "kicker" }, "Universo Sportivo"), /* @__PURE__ */ React.createElement("h1", { className: "wordmark" }, "Indovina il giocatore")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        className: `iconbtn${notte ? " acceso" : ""}`,
+        onClick: cambiaTema,
+        "aria-label": notte ? "Passa al tema chiaro" : "Passa al tema notte",
+        title: notte ? "Tema chiaro" : "Tema notte"
+      },
+      /* @__PURE__ */ React.createElement(Icona, { nome: notte ? "sole" : "luna" })
+    ), /* @__PURE__ */ React.createElement("button", { className: "iconbtn", onClick: () => setPannello("regole"), "aria-label": "Come si gioca" }, /* @__PURE__ */ React.createElement(Icona, { nome: "help" })), /* @__PURE__ */ React.createElement("button", { className: "iconbtn", onClick: () => setPannello("stats"), "aria-label": "Statistiche" }, /* @__PURE__ */ React.createElement(Icona, { nome: "stats" })));
+    if (!bersaglio) {
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, CSS), /* @__PURE__ */ React.createElement("div", { className: "wrap" }, testata, /* @__PURE__ */ React.createElement("p", { style: { fontFamily: "var(--font-body)", color: "var(--ink-soft)" } }, "Archivio vuoto. Aggiungi le carriere nel blocco ", /* @__PURE__ */ React.createElement("code", null, "CARRIERE"), " o le righe stagione nel blocco ", /* @__PURE__ */ React.createElement("code", null, "ARCHIVIO"), ", in cima al file.")));
+    }
+    const percentuale = stats.giocate ? Math.round(stats.vinte / stats.giocate * 100) : 0;
+    const maxBarra = Math.max(1, ...stats.distribuzione);
+    const giorni = calendario();
+    const oggi = dataOggi();
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, CSS), /* @__PURE__ */ React.createElement("div", { className: "wrap" }, testata, /* @__PURE__ */ React.createElement("div", { className: "controls" }, /* @__PURE__ */ React.createElement("div", { className: "segment", role: "group", "aria-label": "Modalit\xE0" }, [
+      ["giorno", "Sfida del giorno"],
+      ["archivio", "Archivio"],
+      ["infinito", "Infinito"]
+    ].map(([id, label]) => /* @__PURE__ */ React.createElement("button", { key: id, "aria-pressed": modalita === id, onClick: () => vaiA(id) }, label))), modalita === "infinito" && /* @__PURE__ */ React.createElement("div", { className: "segment", role: "group", "aria-label": "Difficolt\xE0" }, DIFFICOLTA.map((d) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: d.id,
+        "aria-pressed": livello === d.id,
+        onClick: () => {
+          setLivello(d.id);
+          setSemeInfinito((s) => s + 1);
+        }
+      },
+      d.label
+    )))), listaArchivio ? /* @__PURE__ */ React.createElement(Archivio, { giorni, esiti, oggi, onApri: apriGiorno }) : /* @__PURE__ */ React.createElement(React.Fragment, null, modalita === "archivio" && /* @__PURE__ */ React.createElement("button", { className: "tornaindietro", onClick: () => setListaArchivio(true) }, "\u2039 Tutti i giorni"), /* @__PURE__ */ React.createElement("div", { className: "sectionhead" }, /* @__PURE__ */ React.createElement("h2", null, "Carriera"), /* @__PURE__ */ React.createElement("span", null, quotidiana ? etichettaGiorno(giorno, true) : "partita libera", " \xB7", " ", bersaglio.tappe.length, " tapp", bersaglio.tappe.length === 1 ? "a" : "e")), /* @__PURE__ */ React.createElement(Scala, { tappe: bersaglio.tappe, scoperte, finita }), /* @__PURE__ */ React.createElement(Indizi, { giocatore: bersaglio, aperti: indizi, onApri: apriIndizio, finita }), finita && /* @__PURE__ */ React.createElement("div", { className: `result${esito === "persa" ? " persa" : ""}` }, /* @__PURE__ */ React.createElement("h3", null, esito === "vinta" ? bersaglio.nome : `Era ${bersaglio.nome}`), /* @__PURE__ */ React.createElement("p", null, revisione ? /* @__PURE__ */ React.createElement(React.Fragment, null, "Sfida del ", etichettaGiorno(giorno, true), ", gi\xE0 giocata:", " ", salvato.esito === "vinta" ? /* @__PURE__ */ React.createElement(React.Fragment, null, "indovinato al tentativo ", /* @__PURE__ */ React.createElement("b", null, salvato.tentativi), " con", " ", /* @__PURE__ */ React.createElement("b", null, salvato.punti, " punti"), ".") : /* @__PURE__ */ React.createElement(React.Fragment, null, "tentativi esauriti.")) : esito === "vinta" ? /* @__PURE__ */ React.createElement(React.Fragment, null, "Risolto al tentativo ", /* @__PURE__ */ React.createElement("b", null, tentativi.length + 1), " di ", TENTATIVI_MAX, indizi.length ? ` con ${indizi.length} indizi` : " senza indizi", ".", " ", /* @__PURE__ */ React.createElement("b", null, punti, " punti"), ".") : /* @__PURE__ */ React.createElement(React.Fragment, null, "Tentativi esauriti. Carriera in ", /* @__PURE__ */ React.createElement("b", null, bersaglio.tappe.length), " club", bersaglio.nazione ? `, ${bersaglio.nazione}` : "", bersaglio.ruolo ? `, ${bersaglio.ruolo.toLowerCase()}` : "", ".")), /* @__PURE__ */ React.createElement("div", { className: "resultactions" }, modalita === "archivio" ? /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: () => setListaArchivio(true) }, "Torna all'archivio") : /* @__PURE__ */ React.createElement("button", { className: "btn", onClick: altroGiocatore }, "Altro giocatore"), !revisione && /* @__PURE__ */ React.createElement("button", { className: "btn ghost", onClick: condividi }, copiato ? "Copiato" : "Copia risultato"))), tentativi.length > 0 && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "sectionhead" }, /* @__PURE__ */ React.createElement("h2", null, "Tentativi"), /* @__PURE__ */ React.createElement("span", null, tentativi.length, "/", TENTATIVI_MAX)), /* @__PURE__ */ React.createElement("ul", { className: "guesses" }, tentativi.map((p, i) => /* @__PURE__ */ React.createElement("li", { className: "guess", key: `${p.id}-${i}` }, /* @__PURE__ */ React.createElement("span", { className: "x" }, i + 1), /* @__PURE__ */ React.createElement("span", { className: "nm" }, p.nome)))))), !listaArchivio && /* @__PURE__ */ React.createElement("div", { className: "dock" }, /* @__PURE__ */ React.createElement("div", { className: "dockinner" }, /* @__PURE__ */ React.createElement("div", { className: "meter" }, /* @__PURE__ */ React.createElement("div", { className: "pips", "aria-label": `${tentativi.length} errori` }, Array.from({ length: TENTATIVI_MAX }, (_, i) => /* @__PURE__ */ React.createElement("i", { key: i, className: i < tentativi.length ? "used" : "" }))), /* @__PURE__ */ React.createElement("span", { className: "score" }, finita ? esito === "vinta" ? revisione ? salvato.punti : punti : 0 : punti, " ", "punti")), /* @__PURE__ */ React.createElement(Campo, { pool: GIOCATORI, onInvia: prova, disabilitato: finita }))), /* @__PURE__ */ React.createElement(
+      "a",
+      {
+        className: "tuttigiochi",
+        href: PAGINA_GIOCHI,
+        target: DENTRO_IFRAME ? "_top" : "_self"
+      },
+      "Tutti i giochi di Universo Sportivo"
+    ), /* @__PURE__ */ React.createElement("div", { className: "foot" }, /* @__PURE__ */ React.createElement("span", null, GIOCATORI.length, " giocatori in archivio"), /* @__PURE__ */ React.createElement("a", { href: "https://www.universosportivo.com", target: DENTRO_IFRAME ? "_top" : "_self" }, "universosportivo.com"))), pannello === "regole" && /* @__PURE__ */ React.createElement(Modale, { titolo: "Come si gioca", onClose: () => setPannello(null) }, /* @__PURE__ */ React.createElement("p", null, "La scala mostra la carriera di un giocatore: anni, presenze e gol sono scoperti, i club no."), /* @__PURE__ */ React.createElement("ol", null, /* @__PURE__ */ React.createElement("li", null, "Nelle carriere lunghe parti con ", /* @__PURE__ */ React.createElement("b", null, "il primo club scoperto"), ". Se i club sono due o meno, resta tutto coperto."), /* @__PURE__ */ React.createElement("li", null, "Ogni nome sbagliato costa ", /* @__PURE__ */ React.createElement("b", null, COSTO_ERRORE, " punti"), " e scopre il club successivo."), /* @__PURE__ */ React.createElement("li", null, "I quattro indizi costano ", /* @__PURE__ */ React.createElement("b", null, COSTO_INDIZIO, " punti"), " ciascuno."), /* @__PURE__ */ React.createElement("li", null, "Hai ", /* @__PURE__ */ React.createElement("b", null, TENTATIVI_MAX, " tentativi"), ". Si parte da ", PUNTI_BASE, " punti.")), /* @__PURE__ */ React.createElement("p", { style: { marginTop: 14 } }, "La ", /* @__PURE__ */ React.createElement("b", null, "Sfida del giorno"), " \xE8 identica per tutti e cambia a mezzanotte. In", " ", /* @__PURE__ */ React.createElement("b", null, "Archivio"), " recuperi i giorni che hai saltato. L'", /* @__PURE__ */ React.createElement("b", null, "Infinito"), " pesca a caso, con la difficolt\xE0 che scegli tu.")), pannello === "stats" && /* @__PURE__ */ React.createElement(Modale, { titolo: "Statistiche", onClose: () => setPannello(null) }, /* @__PURE__ */ React.createElement("div", { className: "statgrid" }, /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("b", null, stats.giocate), /* @__PURE__ */ React.createElement("small", null, "Giocate")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("b", null, percentuale, "%"), /* @__PURE__ */ React.createElement("small", null, "Vittorie")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("b", null, stats.serie), /* @__PURE__ */ React.createElement("small", null, "Serie")), /* @__PURE__ */ React.createElement("div", { className: "stat" }, /* @__PURE__ */ React.createElement("b", null, stats.serieMax), /* @__PURE__ */ React.createElement("small", null, "Record"))), /* @__PURE__ */ React.createElement("div", { className: "bars" }, stats.distribuzione.map((n, i) => /* @__PURE__ */ React.createElement("div", { className: "bar", key: i }, /* @__PURE__ */ React.createElement("span", null, i + 1), /* @__PURE__ */ React.createElement("i", { style: { width: `${Math.max(8, n / maxBarra * 100)}%` } }, n)))), /* @__PURE__ */ React.createElement("p", { style: { marginTop: 14, fontSize: 14 } }, "I dati restano su questo dispositivo.")));
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+})();
+
+</script>
+</body>
+</html>
